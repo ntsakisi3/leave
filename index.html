@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leavehub — Employee Leave & Approval Management</title>
+<style>
+  :root {
+    --ink: #1c2430;
+    --ink-soft: #4a5568;
+    --paper: #f6f7f5;
+    --panel: #ffffff;
+    --line: #dde1e6;
+    --moss: #2f6f5e;
+    --moss-dark: #234f42;
+    --amber: #b8863b;
+    --rust: #a23e3e;
+    --radius: 6px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .app { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 220px;
+    background: var(--ink);
+    color: #e8eae6;
+    padding: 24px 18px;
+    flex-shrink: 0;
+  }
+  .brand { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 2px; }
+  .brand span { color: #8fb9a8; }
+  .brand-sub { font-size: 12px; color: #9aa5ab; margin-bottom: 28px; }
+  .role-switch { margin-bottom: 28px; }
+  .role-switch label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #8b969c; margin-bottom: 6px; }
+  .role-switch select {
+    width: 100%; padding: 8px; border-radius: var(--radius); border: 1px solid #3a4553;
+    background: #262f3b; color: #e8eae6; font-size: 14px;
+  }
+  .nav-item {
+    display: block; padding: 9px 10px; margin-bottom: 2px; border-radius: var(--radius);
+    color: #c6cdd1; text-decoration: none; font-size: 14px; cursor: pointer;
+  }
+  .nav-item.active { background: #2a3644; color: #fff; }
+  .nav-item:hover:not(.active) { background: #232c38; }
+  .whoami { margin-top: 30px; padding-top: 16px; border-top: 1px solid #333f4c; font-size: 13px; color: #9aa5ab; }
+  .whoami strong { color: #dfe3e0; display: block; font-size: 14px; }
+
+  /* Main */
+  .main { flex: 1; padding: 30px 38px; max-width: 1100px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .lead { color: var(--ink-soft); font-size: 14px; margin: 0 0 24px; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 26px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
+  .card .num { font-size: 26px; font-weight: 700; }
+  .card .label { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 22px; }
+  .panel h2 { font-size: 15px; margin: 0; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .panel-body { padding: 16px 18px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th { text-align: left; font-weight: 600; color: var(--ink-soft); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+  td { padding: 9px 10px; border-bottom: 1px solid #eef0f2; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .badge.Pending { background: #fbf0dc; color: var(--amber); }
+  .badge.Approved { background: #e3efe9; color: var(--moss-dark); }
+  .badge.Rejected { background: #f5e3e3; color: var(--rust); }
+  .badge.Cancelled { background: #eceef0; color: #6b7480; }
+
+  form.request-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  form.request-form .full { grid-column: 1 / -1; }
+  label.f { display: block; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 4px; }
+  select, input[type=date], textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); font-size: 14px; font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 44px; }
+  button {
+    background: var(--moss); color: white; border: none; padding: 9px 16px; border-radius: var(--radius);
+    font-size: 14px; cursor: pointer; font-weight: 600;
+  }
+  button:hover { background: var(--moss-dark); }
+  button.ghost { background: transparent; color: var(--rust); border: 1px solid var(--rust); padding: 5px 10px; font-size: 12.5px; font-weight: 500; }
+  button.approve { background: var(--moss); padding: 5px 10px; font-size: 12.5px; }
+  button.reject { background: var(--rust); padding: 5px 10px; font-size: 12.5px; }
+  .row-actions { display: flex; gap: 6px; }
+  .msg { padding: 10px 14px; border-radius: var(--radius); font-size: 13.5px; margin-bottom: 14px; }
+  .msg.error { background: #f5e3e3; color: var(--rust); }
+  .msg.ok { background: #e3efe9; color: var(--moss-dark); }
+  .empty { color: var(--ink-soft); font-size: 13.5px; padding: 6px 0; }
+  .audit-item { font-size: 13px; padding: 7px 0; border-bottom: 1px solid #eef0f2; color: var(--ink-soft); }
+  .audit-item:last-child { border-bottom: none; }
+  .audit-item strong { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="brand">Leave<span>hub</span></div>
+    <div class="brand-sub">Leave & Approval Management</div>
+
+    <div class="role-switch">
+      <label>Viewing as</label>
+      <select id="userSelect" onchange="setCurrentUser(this.value)"></select>
+    </div>
+
+    <a class="nav-item" data-view="dashboard" onclick="setView('dashboard')">Dashboard</a>
+    <a class="nav-item" data-view="request" onclick="setView('request')">New Request</a>
+    <a class="nav-item" data-view="myrequests" onclick="setView('myrequests')">My Requests</a>
+    <a class="nav-item" data-view="approvals" onclick="setView('approvals')" id="navApprovals">Approvals</a>
+    <a class="nav-item" data-view="reports" onclick="setView('reports')" id="navReports">HR Reports</a>
+    <a class="nav-item" data-view="audit" onclick="setView('audit')">Audit Trail</a>
+
+    <div class="whoami">
+      <strong id="whoamiName"></strong>
+      <span id="whoamiRole"></span>
+    </div>
+  </div>
+
+  <div class="main" id="main"></div>
+</div>
+
+<script>
+/* ============ In-memory data model (mirrors schema.sql / seed.sql) ============ */
+let employees = [
+  {id:1, name:"Thandiwe Nkosi", role:"Manager", dept:"IT", managerId:null},
+  {id:2, name:"Pieter van Wyk", role:"Manager", dept:"Sales", managerId:null},
+  {id:3, name:"Naledi Dube", role:"HR Admin", dept:"HR", managerId:null},
+  {id:4, name:"Sipho Mahlangu", role:"Employee", dept:"IT", managerId:1},
+  {id:5, name:"Aisha Patel", role:"Employee", dept:"IT", managerId:1},
+  {id:6, name:"Johan Botha", role:"Employee", dept:"Sales", managerId:2},
+  {id:7, name:"Lerato Molefe", role:"Employee", dept:"Sales", managerId:2},
+];
+
+let leaveTypes = ["Annual", "Sick", "Family Responsibility", "Unpaid"];
+
+let balances = {
+  4: {Annual:{accrued:15, used:4}, Sick:{accrued:10, used:1}},
+  5: {Annual:{accrued:15, used:6}, Sick:{accrued:10, used:0}},
+  6: {Annual:{accrued:15, used:2}, Sick:{accrued:10, used:3}},
+  7: {Annual:{accrued:15, used:0}, Sick:{accrued:10, used:0}},
+};
+
+let requests = [
+  {id:1, employeeId:4, type:"Annual", start:"2026-03-10", end:"2026-03-14", days:5, reason:"Family trip", status:"Approved", decidedBy:1, comment:"Approved, team coverage fine"},
+  {id:2, employeeId:5, type:"Sick", start:"2026-01-05", end:"2026-01-05", days:1, reason:"Not feeling well", status:"Approved", decidedBy:1, comment:""},
+  {id:3, employeeId:6, type:"Annual", start:"2026-04-01", end:"2026-04-02", days:2, reason:"Personal", status:"Rejected", decidedBy:2, comment:"Clashes with month-end reporting"},
+  {id:4, employeeId:7, type:"Annual", start:"2026-05-15", end:"2026-05-20", days:4, reason:"Vacation", status:"Pending", decidedBy:null, comment:""},
+];
+let nextRequestId = 5;
+
+let auditLog = [
+  {requestId:1, actorId:4, action:"Submitted", at:"2026-02-18 09:02", details:"Employee submitted annual leave request"},
+  {requestId:1, actorId:1, action:"Approved", at:"2026-02-20 09:15", details:"Manager approved request"},
+  {requestId:3, actorId:6, action:"Submitted", at:"2026-03-20 11:40", details:"Employee submitted annual leave request"},
+  {requestId:3, actorId:2, action:"Rejected", at:"2026-03-25 10:00", details:"Manager rejected due to month-end reporting clash"},
+  {requestId:4, actorId:7, action:"Submitted", at:"2026-05-01 14:22", details:"Employee submitted annual leave request, awaiting decision"},
+];
+
+let currentUserId = 4;
+let currentView = "dashboard";
+
+/* ============ Helpers ============ */
+function emp(id){ return employees.find(e=>e.id===id); }
+function balanceFor(empId, type){
+  const b = (balances[empId] || {})[type];
+  if(!b) return {accrued:0, used:0, available:0};
+  return {...b, available: b.accrued - b.used};
+}
+function workingDays(startStr, endStr){
+  let start = new Date(startStr), end = new Date(endStr);
+  if(end < start) return 0;
+  let count = 0;
+  let d = new Date(start);
+  while(d <= end){
+    const day = d.getDay();
+    if(day !== 0 && day !== 6) count++;
+    d.setDate(d.getDate()+1);
+  }
+  return count;
+}
+function logAudit(requestId, actorId, action, details){
+  const now = new Date();
+  const at = now.toISOString().slice(0,16).replace('T',' ');
+  auditLog.push({requestId, actorId, action, at, details});
+}
+function fmt(d){ return d; }
+
+/* ============ Navigation / rendering ============ */
+function populateUserSelect(){
+  const sel = document.getElementById('userSelect');
+  sel.innerHTML = employees.map(e => `<option value="${e.id}" ${e.id===currentUserId?'selected':''}>${e.name} — ${e.role}</option>`).join('');
+}
+function setCurrentUser(id){
+  currentUserId = parseInt(id);
+  if(currentView === 'approvals' && emp(currentUserId).role === 'Employee') currentView = 'dashboard';
+  if(currentView === 'reports' && emp(currentUserId).role !== 'HR Admin') currentView = 'dashboard';
+  render();
+}
+function setView(v){ currentView = v; render(); }
+
+function render(){
+  populateUserSelect();
+  const user = emp(currentUserId);
+  document.getElementById('whoamiName').textContent = user.name;
+  document.getElementById('whoamiRole').textContent = `${user.role} · ${user.dept}`;
+
+  document.getElementById('navApprovals').style.display = (user.role === 'Employee') ? 'none' : 'block';
+  document.getElementById('navReports').style.display = (user.role === 'HR Admin') ? 'block' : 'none';
+
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === currentView));
+
+  const main = document.getElementById('main');
+  if(currentView === 'dashboard') main.innerHTML = renderDashboard(user);
+  else if(currentView === 'request') { main.innerHTML = renderRequestForm(user); updateBalanceHint(); }
+  else if(currentView === 'myrequests') main.innerHTML = renderMyRequests(user);
+  else if(currentView === 'approvals') main.innerHTML = renderApprovals(user);
+  else if(currentView === 'reports') main.innerHTML = renderReports(user);
+  else if(currentView === 'audit') main.innerHTML = renderAudit(user);
+}
+
+function renderDashboard(user){
+  const myReqs = requests.filter(r => r.employeeId === user.id);
+  const pendingCount = myReqs.filter(r=>r.status==='Pending').length;
+  const annual = balanceFor(user.id, 'Annual');
+  const sick = balanceFor(user.id, 'Sick');
+
+  let teamHtml = '';
+  if(user.role !== 'Employee'){
+    const teamPending = requests.filter(r => emp(r.employeeId).managerId === user.id && r.status === 'Pending');
+    teamHtml = `
+      <div class="panel">
+        <h2>Team requests awaiting your decision (${teamPending.length})</h2>
+        <div class="panel-body">
+          ${teamPending.length ? renderRequestsTable(teamPending, true) : '<div class="empty">Nothing pending — you\'re all caught up.</div>'}
+        </div>
+      </div>`;
+  }
+
+  return `
+    <h1>Welcome back, ${user.name.split(' ')[0]}</h1>
+    <p class="lead">Here's where things stand today.</p>
+    <div class="cards">
+      <div class="card"><div class="num">${annual.available}</div><div class="label">Annual leave days available</div></div>
+      <div class="card"><div class="num">${sick.available}</div><div class="label">Sick leave days available</div></div>
+      <div class="card"><div class="num">${pendingCount}</div><div class="label">Your requests pending</div></div>
+    </div>
+    ${teamHtml}
+    <div class="panel">
+      <h2>Your recent requests</h2>
+      <div class="panel-body">
+        ${myReqs.length ? renderRequestsTable(myReqs.slice(-5).reverse(), false) : '<div class="empty">No requests yet — submit your first one from "New Request".</div>'}
+      </div>
+    </div>
+  `;
+}
+
+function renderRequestsTable(list, showRequester){
+  return `
+    <table>
+      <thead><tr>
+        ${showRequester ? '<th>Employee</th>' : ''}
+        <th>Type</th><th>Dates</th><th>Days</th><th>Status</th>
+        ${showRequester ? '<th>Action</th>' : '<th>Comment</th>'}
+      </tr></thead>
+      <tbody>
+        ${list.map(r => `
+          <tr>
+            ${showRequester ? `<td>${emp(r.employeeId).name}</td>` : ''}
+            <td>${r.type}</td>
+            <td>${r.start} → ${r.end}</td>
+            <td>${r.days}</td>
+            <td><span class="badge ${r.status}">${r.status}</span></td>
+            ${showRequester
+              ? `<td class="row-actions">
+                   <button class="approve" onclick="decide(${r.id}, 'Approved')">Approve</button>
+                   <button class="reject" onclick="decide(${r.id}, 'Rejected')">Reject</button>
+                 </td>`
+              : `<td>${r.comment || '—'}</td>`}
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function renderRequestForm(user){
+  return `
+    <h1>New Leave Request</h1>
+    <p class="lead">Submit a request — your balance is checked automatically.</p>
+    <div id="formMsg"></div>
+    <div class="panel"><div class="panel-body">
+      <form class="request-form" onsubmit="submitRequest(event)">
+        <div>
+          <label class="f">Leave type</label>
+          <select id="fType">${leaveTypes.map(t=>`<option value="${t}">${t}</option>`).join('')}</select>
+        </div>
+        <div>
+          <label class="f">&nbsp;</label>
+          <div style="padding-top:8px; font-size:13px; color:var(--ink-soft);" id="balanceHint"></div>
+        </div>
+        <div>
+          <label class="f">Start date</label>
+          <input type="date" id="fStart" required>
+        </div>
+        <div>
+          <label class="f">End date</label>
+          <input type="date" id="fEnd" required>
+        </div>
+        <div class="full">
+          <label class="f">Reason (optional)</label>
+          <textarea id="fReason" placeholder="A short note for your manager"></textarea>
+        </div>
+        <div class="full">
+          <button type="submit">Submit request</button>
+        </div>
+      </form>
+    </div></div>
+  `;
+}
+
+function updateBalanceHint(){
+  const typeEl = document.getElementById('fType');
+  if(!typeEl) return;
+  const hint = document.getElementById('balanceHint');
+  const b = balanceFor(currentUserId, typeEl.value);
+  hint.textContent = typeEl.value === 'Unpaid' ? 'Unpaid leave — no balance limit.' : `${b.available} day(s) available`;
+}
+
+function submitRequest(e){
+  e.preventDefault();
+  const type = document.getElementById('fType').value;
+  const start = document.getElementById('fStart').value;
+  const end = document.getElementById('fEnd').value;
+  const reason = document.getElementById('fReason').value;
+  const days = workingDays(start, end);
+  const msgBox = document.getElementById('formMsg');
+
+  if(days <= 0){
+    msgBox.innerHTML = `<div class="msg error">End date must be on or after the start date.</div>`;
+    return;
+  }
+  if(type !== 'Unpaid'){
+    const b = balanceFor(currentUserId, type);
+    if(days > b.available){
+      msgBox.innerHTML = `<div class="msg error">Insufficient balance: ${b.available} day(s) available, ${days} requested.</div>`;
+      return;
+    }
+  }
+  const req = {id: nextRequestId++, employeeId: currentUserId, type, start, end, days, reason, status:'Pending', decidedBy:null, comment:''};
+  requests.push(req);
+  logAudit(req.id, currentUserId, 'Submitted', `Employee submitted ${type} leave request for ${days} day(s)`);
+  msgBox.innerHTML = `<div class="msg ok">Request submitted — status: Pending.</div>`;
+  setTimeout(()=>{ currentView='myrequests'; render(); }, 700);
+}
+
+function renderMyRequests(user){
+  const myReqs = requests.filter(r => r.employeeId === user.id).slice().reverse();
+  return `
+    <h1>My Requests</h1>
+    <p class="lead">All leave requests you've submitted.</p>
+    <div class="panel"><div class="panel-body">
+      ${myReqs.length ? `
+      <table>
+        <thead><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th>Comment</th><th></th></tr></thead>
+        <tbody>
+          ${myReqs.map(r => `
+            <tr>
+              <td>${r.type}</td><td>${r.start} → ${r.end}</td><td>${r.days}</td>
+              <td><span class="badge ${r.status}">${r.status}</span></td>
+              <td>${r.comment || '—'}</td>
+              <td>${r.status === 'Pending' ? `<button class="ghost" onclick="cancelRequest(${r.id})">Cancel</button>` : ''}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>` : '<div class="empty">No requests yet.</div>'}
+    </div></div>
+  `;
+}
+
+function cancelRequest(id){
+  const r = requests.find(r=>r.id===id);
+  r.status = 'Cancelled';
+  logAudit(id, currentUserId, 'Cancelled', 'Employee cancelled their own pending request');
+  render();
+}
+
+function renderApprovals(user){
+  const teamReqs = requests.filter(r => emp(r.employeeId).managerId === user.id);
+  const pending = teamReqs.filter(r=>r.status==='Pending');
+  const decided = teamReqs.filter(r=>r.status!=='Pending').slice().reverse();
+  return `
+    <h1>Approvals</h1>
+    <p class="lead">Requests from your direct reports.</p>
+    <div class="panel">
+      <h2>Pending (${pending.length})</h2>
+      <div class="panel-body">${pending.length ? renderRequestsTable(pending, true) : '<div class="empty">Nothing pending.</div>'}</div>
+    </div>
+    <div class="panel">
+      <h2>Recently decided</h2>
+      <div class="panel-body">${decided.length ? renderRequestsTable(decided, false) : '<div class="empty">No history yet.</div>'}</div>
+    </div>
+  `;
+}
+
+function decide(reqId, decision){
+  const r = requests.find(r=>r.id===reqId);
+  r.status = decision;
+  r.decidedBy = currentUserId;
+  if(decision === 'Approved'){
+    if(!balances[r.employeeId]) balances[r.employeeId] = {};
+    if(!balances[r.employeeId][r.type]) balances[r.employeeId][r.type] = {accrued:0, used:0};
+    balances[r.employeeId][r.type].used += r.days;
+  }
+  logAudit(reqId, currentUserId, decision, `Manager ${decision.toLowerCase()} the request`);
+  render();
+}
+
+function renderReports(user){
+  const byDept = {};
+  requests.filter(r=>r.status==='Approved').forEach(r=>{
+    const d = emp(r.employeeId).dept;
+    byDept[d] = (byDept[d]||0) + r.days;
+  });
+  const byType = {};
+  requests.filter(r=>r.status==='Approved').forEach(r=>{
+    byType[r.type] = (byType[r.type]||0) + r.days;
+  });
+  const totalRequests = requests.length;
+  const approvedPct = Math.round(100*requests.filter(r=>r.status==='Approved').length/totalRequests);
+  const lowBalance = employees.filter(e=>e.role==='Employee').filter(e => balanceFor(e.id,'Annual').available < 3);
+
+  return `
+    <h1>HR Reports</h1>
+    <p class="lead">Company-wide leave overview.</p>
+    <div class="cards">
+      <div class="card"><div class="num">${totalRequests}</div><div class="label">Total requests logged</div></div>
+      <div class="card"><div class="num">${approvedPct}%</div><div class="label">Approved rate</div></div>
+      <div class="card"><div class="num">${lowBalance.length}</div><div class="label">Employees under 3 days annual leave</div></div>
+    </div>
+    <div class="panel">
+      <h2>Approved days taken by department</h2>
+      <div class="panel-body">
+        ${Object.keys(byDept).length ? `<table><thead><tr><th>Department</th><th>Days taken</th></tr></thead><tbody>
+          ${Object.entries(byDept).map(([d,days])=>`<tr><td>${d}</td><td>${days}</td></tr>`).join('')}
+        </tbody></table>` : '<div class="empty">No approved leave yet.</div>'}
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Approved days by leave type</h2>
+      <div class="panel-body">
+        ${Object.keys(byType).length ? `<table><thead><tr><th>Type</th><th>Days taken</th></tr></thead><tbody>
+          ${Object.entries(byType).map(([t,days])=>`<tr><td>${t}</td><td>${days}</td></tr>`).join('')}
+        </tbody></table>` : '<div class="empty">No approved leave yet.</div>'}
+      </div>
+    </div>
+  `;
+}
+
+function renderAudit(user){
+  const items = auditLog.slice().reverse();
+  return `
+    <h1>Audit Trail</h1>
+    <p class="lead">Immutable log of every action taken in the system.</p>
+    <div class="panel"><div class="panel-body">
+      ${items.map(a => `
+        <div class="audit-item">
+          <strong>${a.action}</strong> — Request #${a.requestId} by ${emp(a.actorId).name} <span style="float:right; color:#8b969c;">${a.at}</span>
+          <div>${a.details}</div>
+        </div>`).join('')}
+    </div></div>
+  `;
+}
+
+/* Init */
+populateUserSelect();
+render();
+document.addEventListener('input', (e)=>{ if(e.target.id==='fType') updateBalanceHint(); });
+document.addEventListener('change', (e)=>{ if(e.target.id==='fType') updateBalanceHint(); });
+</script>
+</body>
+</html>
